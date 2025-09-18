@@ -1,0 +1,267 @@
+/* 注册页面样式 */
+.register-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: calc(100vh - 80px);
+    margin: 0 auto;
+    padding: 40px 16px;
+    display: flex;
+    align-items: center; /* 垂直居中 */
+    justify-content: center; /* 水平居中 */
+}
+
+/* 让注册弹窗与后台主题一致 */
+body.register-page #dialogue_popup {
+    background: rgba(0,0,0,0.65);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    border-radius: 12px;
+    padding: 28px 32px;
+}
+
+.register-header { text-align: center; margin-bottom: 20px; }
+
+.register-title {
+    font-size: clamp(1.6rem, 2.4vw + 1rem, 2.2rem);
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.register-subtitle { font-size: 0.95rem; color: #999; margin: 0; }
+
+.register-form-container {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 24px 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 560px; /* 与后台登录窗口保持一致宽度 */
+    margin: 0 auto; /* 居中卡片 */
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 控制输入框宽度与居中 */
+.register-form .form-input,
+.register-form input,
+.register-form select,
+.register-form textarea,
+.register-form .btn,
+.register-form .form-hint {
+    width: 100%;
+}
+
+/* 更紧凑的输入区域宽度（红框大小） */
+.register-form-container .form-group,
+.register-form-container .form-actions {
+    max-width: 560px; /* 更紧凑的输入区域，避免过宽 */
+    margin: 0 auto;   /* 居中对齐 */
+}
+
+/* 确保所有输入控件与 .form-group 宽度完全一致（包含邀请码） */
+.register-form-container .form-group .form-input,
+.register-form-container .form-group input,
+.register-form-container .form-group select,
+.register-form-container .form-group textarea {
+    max-width: inherit; /* 继承父容器的 max-width: 560px */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor);
+    font-size: 1rem;
+}
+
+.form-input {
+    padding: 15px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--SmartThemeBodyColor);
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #6b8cff;
+    box-shadow: 0 0 0 3px rgba(107, 140, 255, 0.18);
+    background: rgba(255,255,255,0.12);
+}
+
+.form-input:invalid {
+    border-color: #dc3545;
+}
+
+.form-hint {
+    font-size: 0.9rem;
+    color: var(--SmartThemeSecondaryText);
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.btn-secondary:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.error-message {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 20px;
+    color: #721c24;
+    font-size: 1rem;
+    text-align: center;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 输入验证样式 */
+.form-input.valid {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.form-input.invalid {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+/* 加载状态 */
+.btn.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn.loading:before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .register-container {
+        margin: 20px auto;
+        padding: 10px;
+    }
+
+    .register-title {
+        font-size: 2rem;
+    }
+
+    .register-form-container {
+        padding: 30px 20px;
+    }
+
+    .form-input {
+        padding: 12px 15px;
+    }
+
+    .btn {
+        padding: 12px 25px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .register-title {
+        font-size: 1.8rem;
+    }
+
+    .register-subtitle {
+        font-size: 1rem;
+    }
+
+    .register-form-container {
+        padding: 25px 15px;
+    }
+}
