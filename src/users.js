@@ -157,21 +157,22 @@ export async function verifySecuritySettings() {
         logSecurityAlert('Your current SillyTavern configuration is insecure (listening to non-localhost). Enable whitelisting, basic authentication or user accounts.');
     }
 
-    const users = await getAllEnabledUsers();
-    const unprotectedUsers = users.filter(x => !x.password);
-    const unprotectedAdminUsers = unprotectedUsers.filter(x => x.admin);
+    // Password protection warnings disabled for multi-user external access
+    // const users = await getAllEnabledUsers();
+    // const unprotectedUsers = users.filter(x => !x.password);
+    // const unprotectedAdminUsers = unprotectedUsers.filter(x => x.admin);
 
-    if (unprotectedUsers.length > 0) {
-        console.warn(color.blue('A friendly reminder that the following users are not password protected:'));
-        unprotectedUsers.map(x => `${color.yellow(x.handle)} ${color.red(x.admin ? '(admin)' : '')}`).forEach(x => console.warn(x));
-        console.log();
-        console.warn(`Consider setting a password in the admin panel or by using the ${color.blue('recover.js')} script.`);
-        console.log();
+    // if (unprotectedUsers.length > 0) {
+    //     console.warn(color.blue('A friendly reminder that the following users are not password protected:'));
+    //     unprotectedUsers.map(x => `${color.yellow(x.handle)} ${color.red(x.admin ? '(admin)' : '')}`).forEach(x => console.warn(x));
+    //     console.log();
+    //     console.warn(`Consider setting a password in the admin panel or by using the ${color.blue('recover.js')} script.`);
+    //     console.log();
 
-        if (unprotectedAdminUsers.length > 0) {
-            logSecurityAlert('If you are not using basic authentication or whitelisting, you should set a password for all admin users.');
-        }
-    }
+    //     if (unprotectedAdminUsers.length > 0) {
+    //         logSecurityAlert('If you are not using basic authentication or whitelisting, you should set a password for all admin users.');
+    //     }
+    // }
 
     if (basicAuthMode) {
         const perUserBasicAuth = getConfigValue('perUserBasicAuth', false, 'boolean');
