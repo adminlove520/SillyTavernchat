@@ -53,7 +53,7 @@ ssl:
 # Toggle whitelist mode
 whitelistMode: false
 # Whitelist will also verify IP in X-Forwarded-For / X-Real-IP headers
-enableForwardedWhitelist: true
+enableForwardedWhitelist: false
 # Whitelist of allowed IP addresses
 whitelist:
   - ::1
@@ -268,7 +268,7 @@ claude:
   # Any value other than a non-negative integer will be ignored and caching at depth will not be enabled.
   cachingAtDepth: -1
   # Use 1h TTL instead of the default 5m.
-  ## 5m: base price x 1.25
+  ## 5m: base price x 1.25aa
   ## 1h: base price x 2
   extendedTTL: false
 # -- GOOGLE GEMINI API CONFIGURATION --
