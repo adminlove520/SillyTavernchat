@@ -243,10 +243,18 @@ app.get('/register', (request, response) => {
 });
 
 app.get('/forum', (request, response) => {
+    const enableForum = getConfigValue('enableForum', true, 'boolean');
+    if (!enableForum) {
+        return response.status(404).send('页面未启用');
+    }
     return response.sendFile('forum.html', { root: path.join(serverDirectory, 'public') });
 });
 
 app.get('/public-characters', (request, response) => {
+    const enablePublicCharacters = getConfigValue('enablePublicCharacters', true, 'boolean');
+    if (!enablePublicCharacters) {
+        return response.status(404).send('页面未启用');
+    }
     return response.sendFile('public-characters.html', { root: path.join(serverDirectory, 'public') });
 });
 

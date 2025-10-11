@@ -279,4 +279,11 @@ gemini:
 enableServerPlugins: false
 # Attempt to automatically update server plugins on startup
 enableServerPluginsAutoUpdate: true
-enableInvitationCodes: true
+
+enableInvitationCodes: false
+
+# -- PUBLIC PAGES CONFIGURATION --
+# Enable public character sharing page
+enablePublicCharacters: true
+# Enable forum/community page
+enableForum: true

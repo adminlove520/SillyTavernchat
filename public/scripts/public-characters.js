@@ -2,11 +2,11 @@
 
 let characters = [];
 let filteredCharacters = [];
-let currentPage = 0;
+let publicCharactersCurrentPage = 0;
 const itemsPerPage = 12;
 let isLoading = false;
 let isLoggedIn = false;
-let currentUser = null;
+let publicCharactersCurrentUser = null;
 let currentCharacterId = null;
 let comments = [];
 
@@ -29,19 +29,19 @@ async function checkLoginStatus() {
         if (response.ok) {
             const userData = await response.json();
             isLoggedIn = true;
-            currentUser = userData;
+            publicCharactersCurrentUser = userData;
             console.log('User logged in:', userData);
             return true;
         } else {
             isLoggedIn = false;
-            currentUser = null;
+            publicCharactersCurrentUser = null;
             console.log('User not logged in, status:', response.status);
             return false;
         }
     } catch (error) {
         console.error('Failed to check login status:', error);
         isLoggedIn = false;
-        currentUser = null;
+        publicCharactersCurrentUser = null;
         return false;
     }
 }
@@ -55,8 +55,8 @@ function updateUIForLoginStatus() {
         $('#loginPrompt').hide();
 
         // 更新用户信息
-        if (currentUser) {
-            $('#userName').text(currentUser.name || currentUser.handle);
+        if (publicCharactersCurrentUser) {
+            $('#userName').text(publicCharactersCurrentUser.name || publicCharactersCurrentUser.handle);
         }
     } else {
         // 游客：隐藏上传按钮，显示登录提示
@@ -145,7 +145,7 @@ function renderCharacters() {
     grid.empty();
 
     // 重置页码
-    currentPage = 0;
+    publicCharactersCurrentPage = 0;
 
     const startIndex = 0;
     const endIndex = itemsPerPage;
@@ -176,7 +176,7 @@ function renderCharacters() {
 function appendMoreCharacters() {
     const grid = $('#charactersGrid');
 
-    const startIndex = (currentPage + 1) * itemsPerPage;
+    const startIndex = (publicCharactersCurrentPage + 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const pageCharacters = filteredCharacters.slice(startIndex, endIndex);
 
@@ -191,7 +191,7 @@ function appendMoreCharacters() {
     });
 
     // 更新页码
-    currentPage++;
+    publicCharactersCurrentPage++;
 
     // 显示/隐藏加载更多按钮
     updateLoadMoreButton();
@@ -199,7 +199,7 @@ function appendMoreCharacters() {
 
 // 更新加载更多按钮的显示状态
 function updateLoadMoreButton() {
-    const totalLoaded = (currentPage + 1) * itemsPerPage;
+    const totalLoaded = (publicCharactersCurrentPage + 1) * itemsPerPage;
     if (totalLoaded < filteredCharacters.length) {
         $('#loadMoreButton').show();
     } else {
@@ -225,8 +225,8 @@ function createCharacterCard(character) {
 
     // 检查当前用户是否有删除权限
     const canDelete = isLoggedIn && (
-        currentUser?.admin ||
-        character.uploader?.handle === currentUser?.handle
+        publicCharactersCurrentUser?.admin ||
+        character.uploader?.handle === publicCharactersCurrentUser?.handle
     );
 
     // 根据登录状态显示不同的按钮
@@ -285,8 +285,8 @@ function createCharacterCard(character) {
 
 // 搜索和筛选角色卡
 function filterCharacters() {
-    const searchTerm = $('#searchInput').val().toLowerCase();
-    const sortBy = $('#sortSelect').val();
+    const searchTerm = String($('#searchInput').val() || '').toLowerCase();
+    const sortBy = String($('#sortSelect').val() || '');
 
     filteredCharacters = characters.filter(character => {
         const nameMatch = character.name.toLowerCase().includes(searchTerm);
@@ -312,7 +312,7 @@ function filterCharacters() {
         }
     });
 
-    currentPage = 0;
+    publicCharactersCurrentPage = 0;
     renderCharacters();
 }
 
@@ -485,7 +485,7 @@ async function uploadCharacter(formData) {
 
         // 关闭上传模态框
         $('#uploadModal').hide();
-        $('#uploadForm')[0].reset();
+        /** @type {HTMLFormElement} */ ($('#uploadForm')[0]).reset();
 
     } catch (error) {
         console.error('Failed to upload character:', error);
@@ -543,7 +543,7 @@ $(document).ready(async function() {
         // 关闭上传模态框
         $('#closeUploadModal, #cancelUpload').on('click', () => {
             $('#uploadModal').hide();
-            $('#uploadForm')[0].reset();
+            /** @type {HTMLFormElement} */ ($('#uploadForm')[0]).reset();
         });
 
         // 关闭角色卡详情模态框
@@ -568,11 +568,11 @@ $(document).ready(async function() {
             }
 
             const fileInput = $('#characterFile')[0];
-            const nameInput = $('#characterName').val();
-            const descriptionInput = $('#characterDescription').val();
-            const tagsInput = $('#characterTags').val();
+            const nameInput = String($('#characterName').val() || '');
+            const descriptionInput = String($('#characterDescription').val() || '');
+            const tagsInput = String($('#characterTags').val() || '');
 
-            if (!fileInput.files[0]) {
+            if (!/** @type {HTMLInputElement} */ (fileInput).files || !/** @type {HTMLInputElement} */ (fileInput).files[0]) {
                 showError('请选择角色卡文件');
                 return;
             }
@@ -583,11 +583,11 @@ $(document).ready(async function() {
             }
 
             const formData = new FormData();
-            formData.append('avatar', fileInput.files[0]);
+            formData.append('avatar', /** @type {HTMLInputElement} */ (fileInput).files[0]);
 
             // 获取文件扩展名
-            const fileName = fileInput.files[0].name;
-            const extension = fileName.split('.').pop().toLowerCase();
+            const fileName = /** @type {HTMLInputElement} */ (fileInput).files[0].name;
+            const extension = fileName.split('.').pop()?.toLowerCase() || '';
             formData.append('file_type', extension);
 
             // 添加其他信息
@@ -607,7 +607,7 @@ $(document).ready(async function() {
 
         // 文件选择时自动填充名称
         $('#characterFile').on('change', function() {
-            const file = this.files[0];
+            const file = /** @type {HTMLInputElement} */ (this).files?.[0];
             if (file) {
                 const fileName = file.name;
                 const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
@@ -697,8 +697,8 @@ function renderComments() {
 
 // 创建评论元素
 function createCommentElement(comment, depth = 0) {
-    const isAuthor = isLoggedIn && currentUser && comment.author.handle === currentUser.handle;
-    const isAdmin = isLoggedIn && currentUser && currentUser.admin;
+    const isAuthor = isLoggedIn && publicCharactersCurrentUser && comment.author.handle === publicCharactersCurrentUser.handle;
+    const isAdmin = isLoggedIn && publicCharactersCurrentUser && publicCharactersCurrentUser.admin;
     const canDelete = isAuthor || isAdmin;
 
     const deleteButton = canDelete ?
@@ -785,7 +785,7 @@ async function submitComment() {
         return;
     }
 
-    const content = $('#commentInput').val().trim();
+    const content = String($('#commentInput').val() || '').trim();
     if (!content) {
         showError('请输入评论内容');
         return;
@@ -853,7 +853,7 @@ async function submitReply(parentId) {
         return;
     }
 
-    const content = $(`#replyInput_${parentId} .reply-textarea`).val().trim();
+    const content = String($(`#replyInput_${parentId} .reply-textarea`).val() || '').trim();
     if (!content) {
         showError('请输入回复内容');
         return;
