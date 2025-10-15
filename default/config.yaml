@@ -99,7 +99,7 @@ hostWhitelist:
   # Enable or disable host whitelisting
   enabled: false
   # Scan incoming requests for potential host header spoofing
-  scan: true
+  scan: false
   # List of allowed hosts. Do not include localhost or IPs, these are safe.
   # Use a dot to create subdomain patterns.
   # Examples:
