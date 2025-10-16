@@ -115,7 +115,7 @@
     },
     "version": "1.13.4",
     "scripts": {
-        "start": "node server.js",
+        "start": "node --max-old-space-size=4096 server.js",
         "debug": "node --inspect server.js",
         "start:global": "node server.js --global",
         "start:electron": "cd ./src/electron && npm run start",
