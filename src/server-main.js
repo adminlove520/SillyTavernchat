@@ -178,6 +178,10 @@ if (!cliArgs.disableCsrf) {
 
     // 创建自定义的CSRF保护中间件，添加豁免逻辑
     const customCsrfProtection = (req, res, next) => {
+        // 对安全方法直接放行
+        if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+            return next();
+        }
         // 豁免特定路径
         if (req.path.startsWith('/api/public-characters') ||
             req.path === '/api/users/me' ||
