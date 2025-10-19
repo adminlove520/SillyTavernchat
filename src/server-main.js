@@ -185,10 +185,13 @@ if (!cliArgs.disableCsrf) {
         // 豁免特定路径
         if (req.path.startsWith('/api/public-characters') ||
             req.path === '/api/users/me' ||
+            req.path === '/api/users/heartbeat' ||
             req.path === '/api/invitation-codes/status' ||
             req.path === '/csrf-token' ||
+            req.path === '/api/ping' ||
             req.path === '/api/forum/upload-image' ||
             req.path.startsWith('/api/forum/images/') ||
+            req.path.startsWith('/api/settings/') ||
             (req.method === 'GET' && req.path.startsWith('/api/forum/'))) {
             return next();
         }
