@@ -214,11 +214,11 @@ function onCancelRecoveryClick() {
     displayError('');
 }
 
+
 function onRegisterClick() {
     // 跳转到注册页面
     window.location.href = '/register';
 }
-
 /**
  * Configures the login page for normal login.
  * @param {import('../../src/users').UserViewModel[]} userList List of users
@@ -285,6 +285,7 @@ function configureDiscreetLogin() {
     document.getElementById('shadow_popup').style.opacity = '';
     $('#cancelRecovery').on('click', onCancelRecoveryClick);
     $('#registerButton').on('click', onRegisterClick);
+
     $(document).on('keydown', (evt) => {
         if (evt.key === 'Enter' && document.activeElement.tagName === 'INPUT') {
             if ($('#passwordRecoveryBlock').is(':visible')) {

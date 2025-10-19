@@ -11,9 +11,9 @@ const ENABLE_INVITATION_CODES = getConfigValue('enableInvitationCodes', false, '
  * @property {string} createdBy - 创建者用户句柄
  * @property {number} createdAt - 创建时间戳
  * @property {boolean} used - 是否已使用
- * @property {string} usedBy - 使用者用户句柄（如果已使用）
- * @property {number} usedAt - 使用时间戳（如果已使用）
- * @property {number} expiresAt - 过期时间戳（可选）
+ * @property {string | null} usedBy - 使用者用户句柄（如果已使用）
+ * @property {number | null} usedAt - 使用时间戳（如果已使用）
+ * @property {number | null} expiresAt - 过期时间戳（可选）
  */
 
 /**
@@ -36,17 +36,17 @@ function generateInvitationCode() {
 /**
  * 创建邀请码
  * @param {string} createdBy 创建者用户句柄
- * @param {number} expiresInHours 过期小时数（可选，默认不过期）
+ * @param {number | undefined} expiresInHours 过期小时数（可选，默认不过期）
  * @returns {Promise<InvitationCode>} 创建的邀请码对象
  */
-export async function createInvitationCode(createdBy, expiresInHours = null) {
+export async function createInvitationCode(createdBy, expiresInHours) {
     if (!ENABLE_INVITATION_CODES) {
         throw new Error('Invitation codes are disabled');
     }
 
     const code = generateInvitationCode();
     const now = Date.now();
-    const expiresAt = expiresInHours ? now + (expiresInHours * 60 * 60 * 1000) : null;
+    const expiresAt = (typeof expiresInHours === 'number' && !isNaN(expiresInHours)) ? (now + (expiresInHours * 60 * 60 * 1000)) : null;
 
     const invitation = {
         code,
@@ -112,6 +112,9 @@ export async function useInvitationCode(code, usedBy) {
     }
 
     const invitation = validation.invitation;
+    if (!invitation) {
+        return false;
+    }
     invitation.used = true;
     invitation.usedBy = usedBy;
     invitation.usedAt = Date.now();

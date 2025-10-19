@@ -1,5 +1,7 @@
+// @ts-nocheck
 // 管理员面板扩展功能
 let systemLoadInterval;
+let systemLoadAutoPaused = false;
 let currentSystemData = null;
 let currentInvitationCodes = [];
 let csrfToken = null;
@@ -162,6 +164,26 @@ function bindSystemLoadEvents() {
             clearSystemStats();
         });
     }
+
+	// 鼠标悬停用户统计区域时暂停自动刷新，便于查看
+	const userActivityList = document.getElementById('userActivityList');
+	if (userActivityList) {
+		userActivityList.addEventListener('mouseenter', function() {
+			pauseSystemLoadAutoRefresh();
+		});
+		userActivityList.addEventListener('mouseleave', function() {
+			resumeSystemLoadAutoRefresh();
+		});
+	}
+
+	// 页面不可见时暂停，返回时恢复
+	document.addEventListener('visibilitychange', function() {
+		if (document.hidden) {
+			pauseSystemLoadAutoRefresh();
+		} else {
+			resumeSystemLoadAutoRefresh();
+		}
+	});
 }
 
 // 加载系统负载数据
@@ -340,8 +362,10 @@ function getActivityLevelColor(level) {
 function startSystemLoadAutoRefresh() {
     stopSystemLoadAutoRefresh();
     systemLoadInterval = setInterval(() => {
-        loadSystemLoadData();
-    }, 10000); // 每10秒刷新一次
+        if (!systemLoadAutoPaused) {
+            loadSystemLoadData();
+        }
+    }, 60000); // 每60秒刷新一次
 }
 
 // 停止系统负载自动刷新
@@ -350,6 +374,15 @@ function stopSystemLoadAutoRefresh() {
         clearInterval(systemLoadInterval);
         systemLoadInterval = null;
     }
+}
+
+// 暂停/恢复自动刷新（不销毁现有间隔，仅设置暂停标记）
+function pauseSystemLoadAutoRefresh() {
+    systemLoadAutoPaused = true;
+}
+
+function resumeSystemLoadAutoRefresh() {
+    systemLoadAutoPaused = false;
 }
 
 // 清除系统统计数据

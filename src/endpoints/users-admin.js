@@ -18,36 +18,47 @@ import {
 import { DEFAULT_USER } from '../constants.js';
 import systemMonitor from '../system-monitor.js';
 
+
 export const router = express.Router();
+
+/**
+ * @typedef {import('../users.js').UserViewModel & {
+ *   loadStats?: {
+ *     loadPercentage?: number;
+ *     totalMessages?: number;
+ *     lastActivityFormatted?: string;
+ *   } | null
+ * }} AdminUserViewModel
+ */
 
 router.post('/get', requireAdminMiddleware, async (_request, response) => {
     try {
         /** @type {import('../users.js').User[]} */
         const users = await storage.values(x => x.key.startsWith(KEY_PREFIX));
 
-        /** @type {Promise<import('../users.js').UserViewModel>[]} */
+        /** @type {Promise<AdminUserViewModel>[]} */
         const viewModelPromises = users
-            .map(user => new Promise(resolve => {
-                getUserAvatar(user.handle).then(avatar => {
-                    // 获取用户负载统计（如果可用）
-                    const loadStats = systemMonitor.getUserLoadStats(user.handle);
+        .map(user => new Promise(resolve => {
+            getUserAvatar(user.handle).then(avatar => {
+                // 获取用户负载统计（如果可用）
+                const loadStats = systemMonitor.getUserLoadStats(user.handle);
 
-                    resolve({
-                        handle: user.handle,
-                        name: user.name,
-                        avatar: avatar,
-                        admin: user.admin,
-                        enabled: user.enabled,
-                        created: user.created,
-                        password: !!user.password,
-                        loadStats: loadStats ? {
-                            loadPercentage: loadStats.loadPercentage,
-                            totalMessages: loadStats.totalMessages,
-                            lastActivityFormatted: loadStats.lastActivityFormatted
-                        } : null
-                    });
+                resolve({
+                    handle: user.handle,
+                    name: user.name,
+                    avatar: avatar,
+                    admin: user.admin,
+                    enabled: user.enabled,
+                    created: user.created,
+                    password: !!user.password,
+                    loadStats: loadStats ? {
+                        loadPercentage: loadStats.loadPercentage,
+                        totalMessages: loadStats.totalMessages,
+                        lastActivityFormatted: loadStats.lastActivityFormatted
+                    } : null
                 });
-            }));
+            });
+        }));
 
         const viewModels = await Promise.all(viewModelPromises);
         viewModels.sort((x, y) => (x.created ?? 0) - (y.created ?? 0));

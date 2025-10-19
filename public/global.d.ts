@@ -12,11 +12,26 @@ declare global {
     // Global namespace modules
     interface Window {
         ai: any;
+        isUserOnline: boolean;
+        userHeartbeat: {
+            start(): void;
+            stop(): void;
+            forceStart(): void;
+        };
+        token?: string;
+        csrfToken?: string;
     }
 
     var pdfjsLib;
     var ePub;
     var quickReplyApi: QuickReplyApi;
+    var toastr: {
+        options: any;
+        error(message: string, title?: string, options?: any): void;
+        info(message: string, title?: string, options?: any): void;
+        warning(message: string, title?: string, options?: any): void;
+        success(message: string, title?: string, options?: any): void;
+    };
 
     var SillyTavern: {
         getContext(): typeof getContext;
@@ -32,6 +47,7 @@ declare global {
         pagination(method: string, options?: any): JQuery;
         pagination(options?: any): JQuery;
         izoomify(options?: any): JQuery;
+        transition(options?: any): JQuery;
     }
 
     // NPM package doesn't have the 'queue' property in the type definition

@@ -11,6 +11,86 @@ export let accountsEnabled = false;
 
 // Extend the session every 10 minutes
 const SESSION_EXTEND_INTERVAL = 10 * 60 * 1000;
+// Heartbeat every 60 seconds to detect online presence
+const HEARTBEAT_INTERVAL = 60 * 1000;
+
+// Lightweight online presence indicator
+window.isUserOnline = false;
+window.userHeartbeat = (function () {
+    /** @type {number | null} */
+    let timerId = null;
+    /** @type {boolean} */
+    let running = false;
+
+    async function sendHeartbeat() {
+        try {
+            if (!accountsEnabled || !currentUser) return;
+            const response = await fetch('/api/users/heartbeat', {
+                method: 'POST',
+                headers: getRequestHeaders(),
+            });
+
+            const ok = response && response.ok;
+            if (ok) {
+                if (!window.isUserOnline) {
+                    window.isUserOnline = true;
+                    window.dispatchEvent(new CustomEvent('user-online-state', { detail: { online: true } }));
+                }
+            } else {
+                if (window.isUserOnline) {
+                    window.isUserOnline = false;
+                    window.dispatchEvent(new CustomEvent('user-online-state', { detail: { online: false } }));
+                }
+            }
+        } catch {
+            if (window.isUserOnline) {
+                window.isUserOnline = false;
+                window.dispatchEvent(new CustomEvent('user-online-state', { detail: { online: false } }));
+            }
+        }
+    }
+
+    function start() {
+        if (running) return;
+        running = true;
+        // Immediate ping once started
+        void sendHeartbeat();
+        timerId = window.setInterval(() => void sendHeartbeat(), HEARTBEAT_INTERVAL);
+    }
+
+    function stop() {
+        running = false;
+        if (timerId !== null) {
+            clearInterval(timerId);
+            timerId = null;
+        }
+    }
+
+    function forceStart() {
+        stop();
+        start();
+    }
+
+    // Auto pause/resume on tab visibility
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // keep minimal heartbeat once hidden to reduce noise
+            if (timerId !== null) {
+                clearInterval(timerId);
+                timerId = window.setInterval(() => void sendHeartbeat(), HEARTBEAT_INTERVAL * 2);
+            }
+        } else if (running) {
+            if (timerId !== null) {
+                clearInterval(timerId);
+            }
+            // resume normal cadence and send an immediate ping
+            void sendHeartbeat();
+            timerId = window.setInterval(() => void sendHeartbeat(), HEARTBEAT_INTERVAL);
+        }
+    });
+
+    return { start, stop, forceStart };
+})();
 
 /**
  * Enable or disable user account controls in the UI.
@@ -851,7 +931,6 @@ async function openAdminPanel() {
         template.find('.navTab').each(function () {
             $(this).toggle(this.classList.contains(target));
         });
-
         // 初始化管理员扩展功能
         if (typeof window.initializeAdminExtensions === 'function') {
             setTimeout(() => {
@@ -859,14 +938,12 @@ async function openAdminPanel() {
             }, 100);
         }
     });
-
-    // 管理员面板打开时立即初始化扩展功能
-    if (typeof window.initializeAdminExtensions === 'function') {
-        setTimeout(() => {
-            window.initializeAdminExtensions();
-        }, 200);
-    }
-
+// 管理员面板打开时立即初始化扩展功能
+if (typeof window.initializeAdminExtensions === 'function') {
+    setTimeout(() => {
+        window.initializeAdminExtensions();
+    }, 200);
+}
     template.find('.createUserDisplayName').on('input', async function () {
         const slug = await slugify(String($(this).val()));
         template.find('.createUserHandle').val(slug);
@@ -885,6 +962,7 @@ async function openAdminPanel() {
     });
 
     callGenericPopup(template, POPUP_TYPE.TEXT, '', { okButton: 'Close', wide: true, large: true, allowVerticalScrolling: true, allowHorizontalScrolling: true });
+
     renderUsers();
 }
 
@@ -900,15 +978,14 @@ async function logout() {
         }
 
         // 发送登出请求
-        await fetch('/api/users/logout', {
-            method: 'POST',
-            headers: getRequestHeaders(),
-        });
-    } catch (error) {
-        console.warn('Logout request failed:', error);
-        // 即使登出请求失败，也继续执行页面跳转
-    }
-
+    await fetch('/api/users/logout', {
+        method: 'POST',
+        headers: getRequestHeaders(),
+    });
+} catch (error) {
+    console.warn('Logout request failed:', error);
+    // 即使登出请求失败，也继续执行页面跳转
+}
     // On an explicit logout stop auto login
     // to allow user to change username even
     // when auto auth (such as authelia or basic)

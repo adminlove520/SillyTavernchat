@@ -10,6 +10,7 @@ import _ from 'lodash';
 
 import validateAvatarUrlMiddleware from '../middleware/validateFileName.js';
 import systemMonitor from '../system-monitor.js';
+
 import {
     getConfigValue,
     humanizedISO8601DateTime,
@@ -646,6 +647,7 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
     const avatarUrl = (request.body.avatar_url).replace('.png', '');
     const characterName = request.body.character_name;
     const userName = request.body.user_name || 'User';
+    const fileNames = [];
 
     if (!request.file) {
         return response.sendStatus(400);
@@ -680,6 +682,7 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
             const handleChat = (chat) => {
                 const fileName = `${characterName} - ${humanizedISO8601DateTime()} imported.jsonl`;
                 const filePath = path.join(request.user.directories.chats, avatarUrl, fileName);
+                fileNames.push(fileName);
                 writeFileAtomicSync(filePath, chat, 'utf8');
             };
 
@@ -691,7 +694,7 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
                 handleChat(chat);
             }
 
-            return response.send({ res: true });
+            return response.send({ res: true, fileNames });
         }
 
         if (format === 'jsonl') {
@@ -718,13 +721,14 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
 
             const fileName = `${characterName} - ${humanizedISO8601DateTime()} imported.jsonl`;
             const filePath = path.join(request.user.directories.chats, avatarUrl, fileName);
+            fileNames.push(fileName);
             if (flattenedChat !== data) {
                 writeFileAtomicSync(filePath, flattenedChat, 'utf8');
             } else {
                 fs.copyFileSync(pathToUpload, filePath);
             }
             fs.unlinkSync(pathToUpload);
-            response.send({ res: true });
+            response.send({ res: true, fileNames });
         }
     } catch (error) {
         console.error(error);
