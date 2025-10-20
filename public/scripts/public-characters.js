@@ -123,6 +123,16 @@ async function loadCharacters() {
         });
 
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                // 未登录或无权限：提示并显示登录提示区块
+                console.log('Not authorized to load public characters. Status:', response.status);
+                isLoggedIn = false;
+                updateUIForLoginStatus();
+                showError('请先登录后再访问公共角色卡');
+                // 可选：短暂延迟后跳转到登录页
+                // setTimeout(() => { window.location.href = '/login'; }, 1500);
+                return;
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -133,7 +143,11 @@ async function loadCharacters() {
         renderCharacters();
     } catch (error) {
         console.error('Failed to load characters:', error);
-        showError('加载角色卡失败');
+        if (String(error && error.message || '').includes('status: 401') || String(error && error.message || '').includes('status: 403')) {
+            showError('请先登录后再访问公共角色卡');
+        } else {
+            showError('加载角色卡失败');
+        }
     } finally {
         hideLoading();
     }

@@ -27,7 +27,9 @@ async function initializeForum() {
 
 async function checkUserStatus() {
     try {
-        const response = await fetch('/api/users/me');
+        const response = await fetch('/api/users/me', {
+            credentials: 'include'
+        });
 
         if (response.ok) {
             const user = await response.json();
@@ -67,8 +69,16 @@ async function loadArticles() {
         loadingIndicator.style.display = 'block';
         noArticles.style.display = 'none';
 
-        const response = await fetch('/api/forum/articles');
+        const response = await fetch('/api/forum/articles', {
+            credentials: 'include'
+        });
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                // 未登录或未授权：显示登录提示，不抛错
+                updateUserInterface(null);
+                articlesGrid.innerHTML = '<div class="error-message">请先登录后再访问论坛</div>';
+                return;
+            }
             throw new Error('Failed to load articles');
         }
 
@@ -77,7 +87,11 @@ async function loadArticles() {
 
     } catch (error) {
         console.error('Error loading articles:', error);
-        articlesGrid.innerHTML = '<div class="error-message">加载文章失败，请刷新页面重试</div>';
+        if (String(error && error.message || '').includes('401') || String(error && error.message || '').includes('403')) {
+            articlesGrid.innerHTML = '<div class="error-message">请先登录后再访问论坛</div>';
+        } else {
+            articlesGrid.innerHTML = '<div class="error-message">加载文章失败，请刷新页面重试</div>';
+        }
     } finally {
         loadingIndicator.style.display = 'none';
     }
@@ -136,29 +150,29 @@ function createArticleCard(article) {
 
 function bindEvents() {
     // 搜索功能
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = /** @type {HTMLInputElement} */ (document.getElementById('searchInput'));
     searchInput.addEventListener('input', debounce(handleSearch, 300));
 
     // 筛选功能
-    const categoryFilter = document.getElementById('categoryFilter');
-    const sortFilter = document.getElementById('sortFilter');
+    const categoryFilter = /** @type {HTMLSelectElement} */ (document.getElementById('categoryFilter'));
+    const sortFilter = /** @type {HTMLSelectElement} */ (document.getElementById('sortFilter'));
     categoryFilter.addEventListener('change', handleFilter);
     sortFilter.addEventListener('change', handleFilter);
 
     // 发布文章按钮 - 移除onclick属性并绑定事件
-    const publishButton = document.querySelector('button[onclick="createArticle()"]');
+    const publishButton = /** @type {HTMLButtonElement|null} */ (document.querySelector('button[onclick="createArticle()"]'));
     if (publishButton) {
         publishButton.removeAttribute('onclick');
         publishButton.addEventListener('click', createArticle);
     }
 
     // 文章表单提交
-    const articleForm = document.getElementById('articleForm');
+    const articleForm = /** @type {HTMLFormElement} */ (document.getElementById('articleForm'));
     articleForm.addEventListener('submit', handleArticleSubmit);
 }
 
 function handleSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchTerm = /** @type {HTMLInputElement} */ (document.getElementById('searchInput')).value.toLowerCase();
 
     if (!searchTerm) {
         renderArticles();
@@ -175,8 +189,8 @@ function handleSearch() {
 }
 
 function handleFilter() {
-    const category = document.getElementById('categoryFilter').value;
-    const sort = document.getElementById('sortFilter').value;
+    const category = /** @type {HTMLSelectElement} */ (document.getElementById('categoryFilter')).value;
+    const sort = /** @type {HTMLSelectElement} */ (document.getElementById('sortFilter')).value;
 
     let filteredArticles = [...articles];
 
@@ -194,7 +208,7 @@ function handleFilter() {
             filteredArticles.sort((a, b) => (b.views || 0) - (a.views || 0));
             break;
         default: // latest
-            filteredArticles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            filteredArticles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
     renderFilteredArticles(filteredArticles);
@@ -220,8 +234,8 @@ function createArticle() {
         return;
     }
 
-    document.getElementById('articleModal').style.display = 'flex';
-    document.getElementById('articleForm').reset();
+    (/** @type {HTMLElement} */ (document.getElementById('articleModal'))).style.display = 'flex';
+    (/** @type {HTMLFormElement} */ (document.getElementById('articleForm'))).reset();
     document.getElementById('articleModalTitle').textContent = '发布新文章';
 }
 
@@ -237,11 +251,16 @@ async function handleArticleSubmit(e) {
         return;
     }
 
+    const titleInput = /** @type {HTMLInputElement} */ (document.getElementById('articleTitle'));
+    const contentEl = /** @type {HTMLElement} */ (document.getElementById('articleContent'));
+    const categorySelect = /** @type {HTMLSelectElement} */ (document.getElementById('articleCategory'));
+    const tagsInput = /** @type {HTMLInputElement} */ (document.getElementById('articleTags'));
+
     const formData = {
-        title: document.getElementById('articleTitle').value.trim(),
-        content: document.getElementById('articleContent').innerHTML.trim(),
-        category: document.getElementById('articleCategory').value,
-        tags: document.getElementById('articleTags').value.split(',').map(tag => tag.trim()).filter(tag => tag)
+        title: titleInput.value.trim(),
+        content: contentEl.innerHTML.trim(),
+        category: categorySelect.value,
+        tags: tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag)
     };
 
     if (!formData.title || !formData.content) {
@@ -253,9 +272,9 @@ async function handleArticleSubmit(e) {
         // 获取CSRF token
         const csrfToken = await getCsrfToken();
 
-        const headers = {
+        const headers = /** @type {HeadersInit} */ ({
             'Content-Type': 'application/json',
-        };
+        });
 
         if (csrfToken) {
             headers['x-csrf-token'] = csrfToken;
@@ -304,7 +323,7 @@ async function getCsrfToken() {
 
 async function openArticleDetail(articleId) {
     try {
-        const response = await fetch(`/api/forum/articles/${articleId}`);
+        const response = await fetch(`/api/forum/articles/${articleId}`, { credentials: 'include' });
         if (!response.ok) {
             throw new Error('Failed to load article');
         }
@@ -343,7 +362,7 @@ function renderArticleDetail() {
     renderComments();
 
     // 显示/隐藏删除按钮
-    const deleteBtn = document.getElementById('deleteArticleBtn');
+    const deleteBtn = /** @type {HTMLButtonElement} */ (document.getElementById('deleteArticleBtn'));
     if (currentUser && (currentUser.handle === currentArticle.author.handle || currentUser.admin)) {
         deleteBtn.style.display = 'inline-flex';
         // 绑定删除事件
@@ -357,8 +376,8 @@ function renderArticleDetail() {
 }
 
 function renderComments() {
-    const commentsList = document.getElementById('commentsList');
-    const commentForm = document.getElementById('commentForm');
+    const commentsList = /** @type {HTMLElement} */ (document.getElementById('commentsList'));
+    const commentForm = /** @type {HTMLElement} */ (document.getElementById('commentForm'));
 
     if (!currentUser) {
         commentForm.style.display = 'none';
@@ -456,7 +475,7 @@ async function submitComment() {
         return;
     }
 
-    const content = document.getElementById('commentContent').value.trim();
+    const content = (/** @type {HTMLTextAreaElement} */ (document.getElementById('commentContent'))).value.trim();
     if (!content) {
         alert('请输入评论内容');
         return;
@@ -466,9 +485,9 @@ async function submitComment() {
         // 获取CSRF token
         const csrfToken = await getCsrfToken();
 
-        const headers = {
+        const headers = /** @type {HeadersInit} */ ({
             'Content-Type': 'application/json',
-        };
+        });
 
         if (csrfToken) {
             headers['x-csrf-token'] = csrfToken;
@@ -492,7 +511,7 @@ async function submitComment() {
         currentArticle.comments_count = (currentArticle.comments_count || 0) + 1;
 
         renderComments();
-        document.getElementById('commentContent').value = '';
+        (/** @type {HTMLTextAreaElement} */ (document.getElementById('commentContent'))).value = '';
         document.getElementById('commentsCount').textContent = currentArticle.comments_count;
 
     } catch (error) {
@@ -516,10 +535,8 @@ async function deleteArticle(articleId) {
         // 获取CSRF token
         const csrfToken = await getCsrfToken();
 
-        const headers = {};
-        if (csrfToken) {
-            headers['x-csrf-token'] = csrfToken;
-        }
+        /** @type {HeadersInit} */
+        const headers = csrfToken ? { 'x-csrf-token': csrfToken } : {};
 
         const response = await fetch(`/api/forum/articles/${articleId}`, {
             method: 'DELETE',
@@ -547,24 +564,24 @@ async function deleteArticle(articleId) {
 function showReplyForm(commentId) {
     // 隐藏所有其他回复表单
     document.querySelectorAll('.reply-form').forEach(form => {
-        form.style.display = 'none';
+        (/** @type {HTMLElement} */ (form)).style.display = 'none';
     });
 
     // 显示当前评论的回复表单
-    const replyForm = document.getElementById(`replyForm_${commentId}`);
+    const replyForm = /** @type {HTMLElement} */ (document.getElementById(`replyForm_${commentId}`));
     if (replyForm) {
         replyForm.style.display = 'block';
-        const textarea = replyForm.querySelector('textarea');
+        const textarea = /** @type {HTMLTextAreaElement} */ (replyForm.querySelector('textarea'));
         textarea.focus();
     }
 }
 
 // 隐藏回复表单
 function hideReplyForm(commentId) {
-    const replyForm = document.getElementById(`replyForm_${commentId}`);
+    const replyForm = /** @type {HTMLElement} */ (document.getElementById(`replyForm_${commentId}`));
     if (replyForm) {
         replyForm.style.display = 'none';
-        const textarea = replyForm.querySelector('textarea');
+        const textarea = /** @type {HTMLTextAreaElement} */ (replyForm.querySelector('textarea'));
         textarea.value = '';
     }
 }
@@ -642,10 +659,8 @@ async function deleteComment(commentId) {
         // 获取CSRF token
         const csrfToken = await getCsrfToken();
 
-        const headers = {};
-        if (csrfToken) {
-            headers['x-csrf-token'] = csrfToken;
-        }
+        /** @type {HeadersInit} */
+        const headers = csrfToken ? { 'x-csrf-token': csrfToken } : {};
 
         const response = await fetch(`/api/forum/comments/${commentId}`, {
             method: 'DELETE',
@@ -741,10 +756,10 @@ async function likeArticle() {
 
 // 更新点赞按钮状态
 function updateLikeButtonState() {
-    const likeButton = document.querySelector('button[onclick="likeArticle()"]');
+    const likeButton = /** @type {HTMLButtonElement|null} */ (document.querySelector('button[onclick="likeArticle()"]'));
     if (!likeButton || !currentArticle) return;
 
-    const heartIcon = likeButton.querySelector('i');
+    const heartIcon = /** @type {HTMLElement|null} */ (likeButton.querySelector('i'));
 
     if (currentArticle.user_liked) {
         // 已点赞状态
@@ -835,8 +850,8 @@ function updatePagination() {
     const totalPages = Math.ceil(articles.length / articlesPerPage);
     const pagination = document.getElementById('pagination');
     const pageInfo = document.getElementById('pageInfo');
-    const prevPage = document.getElementById('prevPage');
-    const nextPage = document.getElementById('nextPage');
+    const prevPage = /** @type {HTMLButtonElement} */ (document.getElementById('prevPage'));
+    const nextPage = /** @type {HTMLButtonElement} */ (document.getElementById('nextPage'));
 
     if (totalPages <= 1) {
         pagination.style.display = 'none';

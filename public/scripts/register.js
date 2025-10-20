@@ -1,23 +1,29 @@
 // 注册页面JavaScript
-let csrfToken = '';
+let regCsrfToken = '';
 
 async function getCsrfToken() {
     try {
         const res = await fetch('/csrf-token', { method: 'GET', credentials: 'same-origin' });
         const data = await res.json();
-        csrfToken = data.token || '';
+        regCsrfToken = data.token || '';
     } catch (_) {
         // ignore; server may have CSRF disabled
-        csrfToken = '';
+        regCsrfToken = '';
     }
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    const registerForm = document.getElementById('registerForm');
-    const errorMessage = document.getElementById('errorMessage');
-    const registerButton = document.getElementById('registerButton');
-    const backToLoginButton = document.getElementById('backToLoginButton');
-    const invitationCodeGroup = document.getElementById('invitationCodeGroup');
+    const registerForm = /** @type {HTMLFormElement} */ (document.getElementById('registerForm'));
+    const errorMessage = /** @type {HTMLElement} */ (document.getElementById('errorMessage'));
+    const registerButton = /** @type {HTMLButtonElement} */ (document.getElementById('registerButton'));
+    const backToLoginButton = /** @type {HTMLButtonElement} */ (document.getElementById('backToLoginButton'));
+    const invitationCodeGroup = /** @type {HTMLElement} */ (document.getElementById('invitationCodeGroup'));
+
+    const userHandleInput = /** @type {HTMLInputElement} */ (document.getElementById('userHandle'));
+    const displayNameInput = /** @type {HTMLInputElement} */ (document.getElementById('displayName'));
+    const userPasswordInput = /** @type {HTMLInputElement} */ (document.getElementById('userPassword'));
+    const confirmPasswordInput = /** @type {HTMLInputElement} */ (document.getElementById('confirmPassword'));
+    const invitationCodeInput = /** @type {HTMLInputElement} */ (document.getElementById('invitationCode'));
 
     // 先获取CSRF Token，再检查是否需要邀请码
     await getCsrfToken();
@@ -33,11 +39,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         e.preventDefault();
 
         const formData = {
-            handle: document.getElementById('userHandle').value.trim(),
-            name: document.getElementById('displayName').value.trim(),
-            password: document.getElementById('userPassword').value,
-            confirmPassword: document.getElementById('confirmPassword').value,
-            invitationCode: document.getElementById('invitationCode').value.trim()
+            handle: userHandleInput.value.trim(),
+            name: displayNameInput.value.trim(),
+            password: userPasswordInput.value,
+            confirmPassword: confirmPasswordInput.value,
+            invitationCode: invitationCodeInput.value.trim()
         };
 
         // 基本验证
@@ -50,15 +56,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // 实时验证
-    document.getElementById('userHandle').addEventListener('input', validateHandle);
-    document.getElementById('userPassword').addEventListener('input', validatePassword);
-    document.getElementById('confirmPassword').addEventListener('input', validateConfirmPassword);
+    userHandleInput.addEventListener('input', validateHandle);
+    userPasswordInput.addEventListener('input', validatePassword);
+    confirmPasswordInput.addEventListener('input', validateConfirmPassword);
 
     async function checkInvitationCodeStatus() {
         try {
             const response = await fetch('/api/invitation-codes/status', {
                 method: 'GET',
-                headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+                headers: regCsrfToken ? { 'x-csrf-token': regCsrfToken } : {},
                 credentials: 'same-origin',
             });
             if (!response.ok) {
@@ -68,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const data = await response.json();
             if (data && data.enabled) {
                 invitationCodeGroup.style.display = 'block';
-                document.getElementById('invitationCode').required = true;
+                invitationCodeInput.required = true;
             }
         } catch (error) {
             console.error('Error checking invitation code status:', error);
@@ -88,6 +94,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 验证用户名格式
         if (!/^[a-z0-9-]+$/.test(formData.handle)) {
             showError('用户名只能包含小写字母、数字和连字符');
+            return false;
+        }
+
+        // 额外：限制过于随意/弱的用户名
+        if (isTrivialHandle(formData.handle)) {
+            showError('用户名过于简单，请使用更有辨识度的用户名');
             return false;
         }
 
@@ -121,13 +133,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        if (!/^[a-z0-9-]+$/.test(handle)) {
+        if (!/^[a-z0-9-]+$/.test(handle) || isTrivialHandle(handle)) {
             input.classList.remove('valid');
             input.classList.add('invalid');
         } else {
             input.classList.remove('invalid');
             input.classList.add('valid');
         }
+    }
+
+    // 与后端一致的随意/弱用户名判断
+    function isTrivialHandle(handle) {
+        if (!handle) return true;
+        const h = String(handle).toLowerCase();
+        if (/^\d{3,}$/.test(h)) return true; // 纯数字且>=3
+        if (/^(.)\1{2,}$/.test(h)) return true; // 同字符重复>=3
+        const banned = new Set([
+            '123', '1234', '12345', '123456', '000', '0000', '111', '1111',
+            'qwe', 'qwer', 'qwert', 'qwerty', 'asdf', 'zxc', 'zxcv', 'zxcvb', 'qaz', 'qazwsx',
+            'test', 'tester', 'testing', 'guest', 'user', 'username', 'admin', 'root', 'null', 'void',
+            'abc', 'abcd', 'abcdef'
+        ]);
+        return banned.has(h);
     }
 
     function validatePassword() {
@@ -148,14 +175,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // 同时验证确认密码
-        const confirmPassword = document.getElementById('confirmPassword');
+        const confirmPassword = confirmPasswordInput;
         if (confirmPassword.value) {
             validateConfirmPassword.call(confirmPassword);
         }
     }
 
     function validateConfirmPassword() {
-        const password = document.getElementById('userPassword').value;
+        const password = userPasswordInput.value;
         const confirmPassword = this.value;
         const input = this;
 
@@ -181,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+                ...(regCsrfToken ? { 'x-csrf-token': regCsrfToken } : {}),
             },
             body: JSON.stringify(formData)
         })

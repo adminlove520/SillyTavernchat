@@ -31,6 +31,31 @@ const registerLimiter = new RateLimiterMemory({
     duration: 300,
 });
 
+/**
+ * 判断用户名是否过于随意/简单，不允许注册。
+ * 规则：
+ * - 纯数字且长度>=3
+ * - 单字符重复3次及以上（如 aaa, 1111）
+ * - 常见随意/弱用户名列表
+ */
+function isTrivialHandle(handle) {
+	if (!handle) return true;
+	const h = String(handle).toLowerCase();
+	// 纯数字，长度>=3
+	if (/^\d{3,}$/.test(h)) return true;
+	// 单字符重复3次及以上
+	if (/^(.)\1{2,}$/.test(h)) return true;
+	// 常见随意用户名/弱用户名集合
+	const banned = new Set([
+		'123', '1234', '12345', '123456', '000', '0000', '111', '1111',
+		'qwe', 'qwer', 'qwert', 'qwerty', 'asdf', 'zxc', 'zxcv', 'zxcvb', 'qaz', 'qazwsx',
+		'test', 'tester', 'testing', 'guest', 'user', 'username', 'admin', 'root', 'null', 'void',
+		'abc', 'abcd', 'abcdef'
+	]);
+	if (banned.has(h)) return true;
+	return false;
+}
+
 router.post('/list', async (_request, response) => {
     try {
         if (DISCREET_LOGIN) {
@@ -297,6 +322,12 @@ router.post('/register', async (request, response) => {
             console.warn('Register failed: Invalid handle');
             return response.status(400).json({ error: 'Invalid handle' });
         }
+
+		// 限制随意/弱用户名
+		if (isTrivialHandle(normalizedHandle)) {
+			console.warn('Register failed: Trivial/weak handle not allowed:', normalizedHandle);
+			return response.status(400).json({ error: 'Handle is too simple. Please choose a more unique username.' });
+		}
 
         if (handles.some(x => x === normalizedHandle)) {
             console.warn('Register failed: User with that handle already exists');
